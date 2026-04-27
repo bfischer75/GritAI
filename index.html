@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HIT Workout Tracker</title>
+  <title>GritAI Workout Tracker</title>
   <meta name="theme-color" content="#0a0a0a" />
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -24,7 +24,7 @@ const PROGRAM = {
       { id: "incline_press", name: "Incline DB Press", target: "Upper Chest", repRange: [8, 12], restType: "compound", note: "Neutral grip. 3 sec descent. Shoulder: reduce ROM if pinching." },
       { id: "flat_press", name: "Flat DB Press", target: "Mid Chest", repRange: [8, 12], restType: "compound", note: "Neutral grip. Already warm — lighter WU loads." },
       { id: "ohp", name: "Seated DB Overhead Press", target: "Front Delt · Traps", repRange: [8, 10], restType: "compound", note: "Stop 10° short of lockout. Skip if shoulder flares." },
-      { id: "ab_wheel_a", name: "Ab Wheel Rollout", target: "Core · Lats", repRange: [8, 12], restType: "core", note: "From knees. Extend only as far as lower back stays neutral." },
+      { id: "ab_wheel_a", name: "Ab Wheel Rollout", target: "Core · Lats", repRange: [8, 12], restType: "core", bodyweight: true, note: "From knees. Extend only as far as lower back stays neutral." },
     ],
   },
   B: {
@@ -47,7 +47,7 @@ const PROGRAM = {
       { id: "row_c", name: "Bilateral Bent-over Row", target: "Mid Back", repRange: [10, 12], restType: "compound", note: "Second exposure. Lower load, focus on feel." },
       { id: "press_c", name: "Flat or Incline DB Press", target: "Chest", repRange: [10, 12], restType: "compound", note: "Whichever felt weaker this week." },
       { id: "calf_c", name: "Calf Raise", target: "Calves", repRange: [15, 20], restType: "isolation", note: "Second exposure. Reduce load if still sore from Day B." },
-      { id: "ab_wheel_c", name: "Ab Wheel Rollout", target: "Core", repRange: [10, 15], restType: "core", note: "If lower back fatigued, sub with plank hold to failure." },
+      { id: "ab_wheel_c", name: "Ab Wheel Rollout", target: "Core", repRange: [10, 15], restType: "core", bodyweight: true, note: "If lower back fatigued, sub with plank hold to failure." },
     ],
   },
 };
@@ -710,7 +710,7 @@ function WorkoutTracker() {
   const lastEntry = getLastEntry(data.history, exercise?.id);
   const target = exercise ? getTarget(exercise, lastEntry) : null;
   const restGuide = exercise ? getRestGuide(exercise) : null;
-  const isBW = exercise && exercise.repRange[0] === 0 && exercise.repRange[1] === 0;
+  const isBW = exercise && (exercise.bodyweight === true || (exercise.repRange[0] === 0 && exercise.repRange[1] === 0));
   const currentLog = logValues[exercise?.id] || { weight: "", reps: "" };
 
   useEffect(() => {
@@ -796,7 +796,12 @@ function WorkoutTracker() {
   }
 
   function warmupWeight(pct) {
-    if (isBW) return pct === 50 ? "Band-assist" : "Bodyweight";
+    if (isBW) {
+      if (exercise.repRange[0] === 0 && exercise.repRange[1] === 0) {
+        return pct === 50 ? "Band-assist" : "Bodyweight";
+      }
+      return "Bodyweight";
+    }
     const w = parseFloat(currentLog.weight) || target?.weight;
     if (!w || w === "BW") return `~${pct}% of working weight`;
     return `${Math.round((w * pct / 100) / 2.5) * 2.5} lbs`;
@@ -924,13 +929,13 @@ function WorkoutTracker() {
                   <div className="warmup-row">
                     <span className="warmup-badge">WU 1</span>
                     <span className="warmup-detail">
-                      {warmupWeight(50)} · {isBW ? "6 easy reps" : "8–10 reps"}
+                      {warmupWeight(50)} · {isBW && exercise.repRange[0] === 0 ? "6 easy reps" : "8–10 reps"}
                     </span>
                   </div>
                   <div className="warmup-row">
                     <span className="warmup-badge">WU 2</span>
                     <span className="warmup-detail">
-                      {warmupWeight(75)} · {isBW ? "3–4 reps" : "4–6 reps"}
+                      {warmupWeight(75)} · {isBW && exercise.repRange[0] === 0 ? "3–4 reps" : "4–6 reps"}
                     </span>
                   </div>
                 </div>
@@ -961,8 +966,8 @@ function WorkoutTracker() {
                   )}
 
                   <div className="target-stat">
-                    <div className="target-val">{isBW ? "MAX" : target.reps}</div>
-                    <div className="target-unit">{isBW ? "reps to failure" : "reps target"}</div>
+                    <div className="target-val">{isBW && exercise.repRange[0] === 0 ? "MAX" : target.reps}</div>
+                    <div className="target-unit">{isBW && exercise.repRange[0] === 0 ? "reps to failure" : "reps target"}</div>
                   </div>
 
                   {target.prevReps !== undefined && (
